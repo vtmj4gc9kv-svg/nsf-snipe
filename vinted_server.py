@@ -1,5 +1,5 @@
 """Local web server for the NSF Snipebot phone app (standard library only)."""
-import json, secrets, socket, threading, time
+import json, os, secrets, socket, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -11,6 +11,8 @@ _lock = threading.Lock()
 
 
 def get_key():
+    if os.environ.get("APP_KEY"):
+        return os.environ["APP_KEY"].strip()
     if not KEY_FILE.exists():
         KEY_FILE.write_text(secrets.token_urlsafe(12))
     return KEY_FILE.read_text().strip()
@@ -67,7 +69,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, "{}")
 
 
-def start(port=8765):
+def start(port=None):
+    port = port or int(os.environ.get("PORT", 8765))
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:

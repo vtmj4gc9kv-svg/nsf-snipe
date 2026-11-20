@@ -19,17 +19,16 @@ PROFILE_DIR = Path("vinted_profile")
 SEEN_FILE = Path("seen_items.json")
 CHECK_INTERVAL = (30, 60)   # pause between full rounds (seconds)
 HEADLESS = True
+LOW_MEM_ARGS = ["--disable-dev-shm-usage", "--disable-gpu", "--disable-extensions", "--disable-background-networking", "--renderer-process-limit=1"]
 
 # brand -> aliases matched against the item's brand field (word boundaries)
 BRANDS = {
-    "Moncler": ["moncler"], "Prada": ["prada"], "Stone Island": ["stone island"],
+    "Moncler": ["moncler"], "Moncler Grenoble": ["moncler grenoble"], "Prada": ["prada"], "Stone Island": ["stone island"],
     "C.P. Company": ["c.p. company", "cp company", "c.p.company", "c.p."],
     "Luna Rossa": ["luna rossa"], "Dolce & Gabbana": ["dolce", "d&g"],
     "Gucci": ["gucci"], "Tom Ford": ["tom ford"], "Thom Browne": ["thom browne"],
-    "Philipp Plein": ["philipp plein", "plein"], "Blauer": ["blauer"],
     "Loro Piana": ["loro piana"], "MCM": ["mcm"], "Coach": ["coach"],
-    "Parajumpers": ["parajumpers"], "Fendi": ["fendi"],
-    "Wellensteyn": ["wellensteyn"], "Armani": ["armani"], "Burberry": ["burberry"],
+    "Parajumpers": ["parajumpers"], "Fendi": ["fendi"],"Burberry": ["burberry"], "Louis Vuitton": ["louis vuitton"],
 }
 _BASE = [b for b in BRANDS if b != "Burberry"]
 
@@ -164,8 +163,9 @@ def run_bot():
     seen = set(json.loads(SEEN_FILE.read_text())) if SEEN_FILE.exists() else set()
     scanned = set()  # categories already scanned once this session (no alerts on the first pass)
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(str(PROFILE_DIR), headless=HEADLESS)
+        ctx = p.chromium.launch_persistent_context(str(PROFILE_DIR), headless=HEADLESS, args=LOW_MEM_ARGS)
         page = ctx.new_page()
+        page.route("**/*", lambda r: r.abort() if r.request.resource_type in ("image", "media", "font") else r.continue_())
         server.start()
         try:
             while True:

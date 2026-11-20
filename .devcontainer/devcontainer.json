@@ -1,0 +1,5 @@
+{
+  "name": "NSF Snipebot",
+  "postStartCommand": "nohup bash start.sh > start.log 2>&1 &",
+  "forwardPorts": [8765]
+}
