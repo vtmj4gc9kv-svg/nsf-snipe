@@ -24,7 +24,7 @@ with sync_playwright() as p:
                     b.scan_brand(page, cat, brand, seen, not first)
                 except Exception as e:
                     print(f"No items for {brand} (error: {e})")
-                time.sleep(random.uniform(2, 4))
+                time.sleep(random.uniform(0.5, 1.5))
     browser.close()
 blocked = buf.getvalue().count("No items for")
 hits = json.loads(HITS.read_text()) if HITS.exists() else []
