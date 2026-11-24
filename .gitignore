@@ -1,6 +1,4 @@
 app_key.txt
-hits.json
-seen_items.json
 vinted_profile/
 __pycache__/
 *.log
