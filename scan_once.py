@@ -9,7 +9,11 @@ DATA.mkdir(exist_ok=True)
 HITS = DATA / "hits.json"
 server.HITS_FILE = HITS
 first = not b.SEEN_FILE.exists()
-seen = set() if first else set(json.loads(b.SEEN_FILE.read_text()))
+raw = {} if first else json.loads(b.SEEN_FILE.read_text())
+if isinstance(raw, list):
+    raw = {"clothing": raw}
+seen_by = {cat: set(raw.get(cat, [])) for cat in b.CATEGORIES}
+quiet = {cat: first or cat not in raw for cat in b.CATEGORIES}
 buf, total = io.StringIO(), 0
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, args=["--disable-dev-shm-usage"])
@@ -21,15 +25,15 @@ with sync_playwright() as p:
             for brand in cfg["brands"]:
                 total += 1
                 try:
-                    b.scan_brand(page, cat, brand, seen, not first)
+                    b.scan_brand(page, cat, brand, seen_by[cat], not quiet[cat])
                 except Exception as e:
                     print(f"No items for {brand} (error: {e})")
-                time.sleep(random.uniform(0.5, 1.5))
+                time.sleep(random.uniform(2, 4))
     browser.close()
 blocked = buf.getvalue().count("No items for")
 hits = json.loads(HITS.read_text()) if HITS.exists() else []
 cut = time.time() - 3 * 86400
 HITS.write_text(json.dumps([h for h in hits if h["ts"] > cut]))
 (DATA / "status.json").write_text(json.dumps({"last_run": int(time.time()), "blocked": blocked, "total": total}))
-b.SEEN_FILE.write_text(json.dumps(sorted(seen)[-20000:]))
+b.SEEN_FILE.write_text(json.dumps({c: sorted(v)[-20000:] for c, v in seen_by.items()}))
 print(f"scanned {total}, blocked {blocked}, hits {len(hits)}")
