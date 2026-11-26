@@ -68,7 +68,7 @@ function choose(c) {
 
 function results() {
   const col = COLORS[rarity];
-  const list = data.hits.filter(h => h.category === cat && h.rarity === rarity);
+  const ids = new Set(), keys = new Set(); const list = data.hits.filter(h => h.category === cat && h.rarity === rarity).filter(h => { const id = (h.url.match(/items\/(\d+)/) || [])[1] || h.url; const k = (h.brand + h.title + h.price).toLowerCase(); if (ids.has(id) || keys.has(k)) return false; ids.add(id); keys.add(k); return true; });
   const st = data.state;
   $('#app').innerHTML = `<div class="top"><button class="back" id="back">‹ Back</button><div><b>${NAMES[cat]}</b>
     <div class="sub"><span class="dot"></span>${st.last_run ? 'Last scan: ' + ago(st.last_run) + (st.blocked > st.total / 2 ? ' · Vinted may be blocking' : '') : 'Waiting for first scan…'}</div></div></div>
