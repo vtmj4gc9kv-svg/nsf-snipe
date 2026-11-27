@@ -4,6 +4,21 @@ from playwright.sync_api import sync_playwright
 import vinted_bot as b
 import vinted_server as server
 
+def explain(page, cat, brand, n=5):
+    c = b.CATEGORIES[cat]
+    page.goto(f"{b.BASE_URL}/catalog?search_text={b.quote_plus(brand)}&order=newest_first&price_to={c['max']}", wait_until="domcontentloaded")
+    try:
+        page.wait_for_selector('a[href*="/items/"]', timeout=15000)
+    except Exception:
+        print("DEBUG", brand, "keine Artikel gefunden")
+        return
+    for link in page.query_selector_all('a[href*="/items/"]')[:n]:
+        attr = link.get_attribute("title") or ""
+        card = link.evaluate_handle("""el => el.closest('[data-testid^="product-item"]') || el""").as_element()
+        text = attr + " " + (card.inner_text() if card else "")
+        cond = b.parse_condition(b.field(text, "Zustand") or b.field(text, "Condition") or text)
+        print("DEBUG", cat, brand, repr(attr[:170]), "| Marke:", b.field(text, "Marke") or b.field(text, "Brand"), "| Groesse:", b.field(text, "Größe") or b.field(text, "Size"), "| Zustand:", cond, "| Preis:", b.parse_price(attr) or b.parse_price(text))
+
 DATA = Path("data")
 DATA.mkdir(exist_ok=True)
 HITS = DATA / "hits.json"
@@ -31,6 +46,8 @@ with sync_playwright() as p:
                 except Exception as e:
                     print(f"No items for {brand} (error: {e})")
                 time.sleep(random.uniform(2, 4))
+    explain(page, "clothing", "Prada")
+    explain(page, "accessories", "Gucci")
     browser.close()
 blocked = buf.getvalue().count("No items for")
 hits = json.loads(HITS.read_text()) if HITS.exists() else []
