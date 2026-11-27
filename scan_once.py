@@ -8,12 +8,14 @@ DATA = Path("data")
 DATA.mkdir(exist_ok=True)
 HITS = DATA / "hits.json"
 server.HITS_FILE = HITS
+t0 = int(time.time())
 first = not b.SEEN_FILE.exists()
 raw = {} if first else json.loads(b.SEEN_FILE.read_text())
 if isinstance(raw, list):
     raw = {"clothing": raw}
 seen_by = {cat: set(raw.get(cat, [])) for cat in b.CATEGORIES}
 quiet = {cat: first or cat not in raw for cat in b.CATEGORIES}
+old_ids = sum(len(v) for v in seen_by.values())
 buf, total = io.StringIO(), 0
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, args=["--disable-dev-shm-usage"])
@@ -36,4 +38,6 @@ cut = time.time() - 3 * 86400
 HITS.write_text(json.dumps([h for h in hits if h["ts"] > cut]))
 (DATA / "status.json").write_text(json.dumps({"last_run": int(time.time()), "blocked": blocked, "total": total}))
 b.SEEN_FILE.write_text(json.dumps({c: sorted(v)[-20000:] for c, v in seen_by.items()}))
-print(f"scanned {total}, blocked {blocked}, hits {len(hits)}")
+new_ids = sum(len(v) for v in seen_by.values()) - old_ids
+new_hits = sum(1 for h in hits if h["ts"] >= t0)
+print(f"scanned {total}, blocked {blocked}, new ids {new_ids}, new hits {new_hits}, in list {len(hits)}")
